@@ -14,7 +14,7 @@ sudo yum update -y
 echo "[*] Installing required packages..."
 sudo yum install -y python3 unzip wget git gcc gcc-c++ make openssl-devel
 
-# Install awscli if not installed
+# Install AWS CLI if not installed
 if ! command -v aws &> /dev/null; then
     echo "[*] Installing AWS CLI..."
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -59,22 +59,26 @@ if [ "$INSTALL_CMAKE" = true ]; then
     sudo make install
 fi
 
-# Clone the ComplianceAsCode content if not already present
-if [ ! -d "/opt/complianceascode" ]; then
-    echo "[*] Cloning ComplianceAsCode content..."
-    sudo git clone https://github.com/ComplianceAsCode/content.git /opt/complianceascode
+# Clone the SCAP Security Guide content
+cd /tmp
+if [ ! -d "scap-security-guide-0.1.76" ]; then
+    echo "[*] Cloning SCAP Security Guide..."
+    git clone https://github.com/ComplianceAsCode/content.git scap-security-guide-0.1.76
 fi
 
-# Build SCAP content for Amazon Linux 2
-cd /opt/complianceascode
+# Go to the directory and prepare the build
+cd scap-security-guide-0.1.76
 mkdir -p build
 cd build
-cmake -DSSG_TARGETS="amazon_linux2" ..
+
+# Run CMake to generate and build the SCAP content for Amazon Linux 2
+echo "[*] Building SCAP content for Amazon Linux 2..."
+cmake ..
 make -j$(nproc)
 
-# Copy the built SCAP file
-sudo mkdir -p /usr/share/xml/scap/ssg/content/
-sudo cp /opt/complianceascode/build/ssg-amazon_linux2-ds.xml /usr/share/xml/scap/ssg/content/
+# Copy the SCAP content to the correct directory
+echo "[*] Copying SCAP data to system directory..."
+sudo cp /tmp/scap-security-guide-0.1.76/build/ssg-amazon_linux2-ds.xml /usr/share/xml/scap/ssg/content/
 
 # Download Amazon2 COS Audit Scripts
 cd /var/tmp
