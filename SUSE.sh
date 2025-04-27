@@ -57,46 +57,14 @@ check_system_resources() {
 
 # Function to run SCAP evaluation and generate the report
 run_scap_evaluation() {
-    echo "Running SCAP evaluation with profile '$PROFILE'..."
+    echo "Running SCAP evaluation with profile 'xccdf_org.ssgproject.content_profile_cis_workstation_l2'..."
 
     # Run SCAP evaluation with results in XML and HTML format
-    sudo oscap xccdf eval --profile "$PROFILE" --fetch-remote-resources --results "$RESULTS_XML" --report "$REPORT_HTML" --verbose "$SCAP_CONTENT"
+    sudo oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis_workstation_l2 --fetch-remote-resources --results "$RESULTS_XML" --report "$REPORT_HTML" --verbose "$SCAP_CONTENT"
 
     echo "SCAP evaluation completed. Results saved to:"
     echo "XML results: $RESULTS_XML"
     echo "HTML report: $REPORT_HTML"
-}
-
-# Function to prompt the user for the profile choice
-choose_profile() {
-    echo "Please choose the level to scan:"
-    echo "1. Level 1 Workstation"
-    echo "2. Level 2 Workstation"
-    echo "3. Level 1 Server"
-    echo "4. Level 2 Server"
-
-    read -p "Enter your choice (1-4): " choice
-
-    case $choice in
-        1)
-            PROFILE="xccdf_org.ssgproject.content_profile_cis_workstation_l1"
-            ;;
-        2)
-            PROFILE="xccdf_org.ssgproject.content_profile_cis_workstation_l2"
-            ;;
-        3)
-            PROFILE="xccdf_org.ssgproject.content_profile_cis_server_l1"
-            ;;
-        4)
-            PROFILE="xccdf_org.ssgproject.content_profile_cis"
-            ;;
-        *)
-            echo "Invalid choice. Exiting."
-            exit 1
-            ;;
-    esac
-
-    echo "You selected: $PROFILE"
 }
 
 # Main function to execute all tasks
@@ -109,9 +77,6 @@ main() {
 
     # Check system resources (disk space and memory)
     check_system_resources
-
-    # Ask the user to select the profile
-    choose_profile
 
     # Run SCAP evaluation and generate the report
     run_scap_evaluation
