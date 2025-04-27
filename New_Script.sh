@@ -2,7 +2,6 @@
 
 # Define report location in the Home directory
 REPORT_DIR="$HOME/lynis_reports"
-CSV_REPORT="$REPORT_DIR/lynis_report.csv"
 JSON_REPORT="$REPORT_DIR/lynis_report.json"
 
 # Check if the report directory exists, if not create it
@@ -29,7 +28,7 @@ else
     echo "Lynis is already installed."
 fi
 
-# Step 3: Install required Python libraries (for CSV/JSON output)
+# Step 3: Install required Python libraries (for JSON output)
 echo "Checking and installing required Python libraries..."
 pip3 show pandas &> /dev/null
 if [ $? -ne 0 ]; then
@@ -52,39 +51,6 @@ else
     echo "Lynis audit completed successfully, saving to JSON file: $JSON_REPORT"
 fi
 
-# Step 5: Convert JSON report to CSV format using Python
-echo "Converting JSON report to CSV..."
-python3 - <<EOF
-import pandas as pd
-import json
-
-# Load the JSON report
-with open("$JSON_REPORT", "r") as json_file:
-    data = json.load(json_file)
-
-# Convert JSON data to pandas DataFrame
-df = pd.json_normalize(data)
-
-# Save the DataFrame to CSV
-df.to_csv("$CSV_REPORT", index=False)
-EOF
-
-# Step 6: Check and Notify
-if [ -f "$CSV_REPORT" ]; then
-    echo "CSV report created successfully! Report saved to $CSV_REPORT"
-else
-    echo "Error: Conversion to CSV failed."
-    exit 1
-fi
-
-if [ -f "$JSON_REPORT" ]; then
-    echo "JSON report created successfully! Report saved to $JSON_REPORT"
-else
-    echo "Error: JSON report creation failed."
-    exit 1
-fi
-
-# Done
-echo "Audit completed. You can find the CSV report at: $CSV_REPORT"
-echo "You can find the JSON report at: $JSON_REPORT"
+# Step 5: Notify the user
+echo "Audit completed. You can find the JSON report at: $JSON_REPORT"
 echo "Script execution finished."
