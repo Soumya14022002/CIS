@@ -3,7 +3,7 @@
 # Exit immediately if a command fails
 set -e
 
-# Variables
+# Variables for the SCAP content and result paths
 SCAP_CONTENT="/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml"
 RESULTS_XML="/tmp/results.xml"
 REPORT_HTML="/tmp/report.html"
@@ -36,27 +36,12 @@ check_scap_content() {
     echo "SCAP content file found: $SCAP_CONTENT"
 }
 
-# Function to check if the profile exists in the SCAP content
-check_profile() {
-    echo "Checking if the profile exists in SCAP content..."
-
-    # Get the list of available profiles and search for the specified profile
-    available_profiles=$(oscap info "$SCAP_CONTENT" | grep -i "Profile:")
-
-    if echo "$available_profiles" | grep -q "$PROFILE"; then
-        echo "Profile '$PROFILE' found."
-    else
-        echo "Profile '$PROFILE' not found. Please check the profile name or install the appropriate content."
-        exit 1
-    fi
-}
-
-# Function to run SCAP evaluation and generate report
+# Function to run SCAP evaluation and generate the report
 run_scap_evaluation() {
     echo "Running SCAP evaluation with profile '$PROFILE'..."
 
     # Run SCAP evaluation with results in XML and HTML format
-    sudo oscap xccdf eval --profile "$PROFILE" \
+    sudo oscap xccdf eval --profile "$PROFILE" --fetch-remote-resources \
         --results "$RESULTS_XML" --report "$REPORT_HTML" \
         "$SCAP_CONTENT"
 
@@ -108,10 +93,7 @@ main() {
     # Ask the user to select the profile
     choose_profile
 
-    # Check if the profile exists in the content
-    check_profile
-
-    # Run SCAP evaluation and generate report
+    # Run SCAP evaluation and generate the report
     run_scap_evaluation
 }
 
