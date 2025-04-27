@@ -1,81 +1,82 @@
 #!/bin/bash
 
-set -e
+# Define report location
+REPORT_DIR="$HOME/lynis_reports"
+HTML_REPORT="$REPORT_DIR/lynis_report.html"
+XLSX_REPORT="$REPORT_DIR/lynis_report.xlsx"
 
-echo "===== Amazon Linux 2 CIS Benchmark + Lynis Audit Script ====="
+# Check if the report directory exists, if not create it
+if [ ! -d "$REPORT_DIR" ]; then
+    echo "Creating report directory: $REPORT_DIR"
+    mkdir -p "$REPORT_DIR"
+fi
 
-# Update system first
-echo "[+] Updating system packages..."
+# Step 1: Install Prerequisites
+echo "Installing prerequisites..."
+
+# Update package lists
 sudo yum update -y
 
-# Install essential packages
-echo "[+] Installing required packages..."
-sudo yum install -y git wget unzip python3 cmake gcc gcc-c++ make openscap-scanner scap-security-guide
+# Install necessary dependencies
+sudo yum install -y git curl python3-pip
 
-# Install awscli if not present
-if ! command -v aws &> /dev/null
+# Step 2: Install Lynis (if not already installed)
+if ! command -v lynis &> /dev/null
 then
-    echo "[+] Installing AWS CLI..."
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    sudo ./aws/install
+    echo "Lynis not found, installing..."
+    git clone https://github.com/CISOfy/lynis.git "$HOME/lynis"
+    cd "$HOME/lynis"
+    sudo ./lynis install
+else
+    echo "Lynis is already installed."
 fi
 
-# Install ansible if needed
-if ! command -v ansible-playbook &> /dev/null
-then
-    echo "[+] Installing Ansible..."
-    sudo amazon-linux-extras enable ansible2
-    sudo yum clean metadata
-    sudo yum install -y ansible
+# Step 3: Run the Lynis Audit
+echo "Running Lynis audit..."
+
+# Run the audit
+cd "$HOME/lynis"
+sudo ./lynis audit system --report-file "$HTML_REPORT"
+
+# Check if the audit was successful
+if [ -f "$HTML_REPORT" ]; then
+    echo "Lynis audit completed successfully. Report saved to $HTML_REPORT"
+else
+    echo "Error: Lynis audit failed."
+    exit 1
 fi
 
-# Install OpenSCAP and SCAP Security Guide
-echo "[+] Setting up SCAP Security Guide..."
-if [ -d "scap-security-guide" ]; then
-    echo "[*] Removing old scap-security-guide folder..."
-    rm -rf scap-security-guide
+# Step 4: Convert HTML Report to XLSX (using Python)
+echo "Converting HTML report to XLSX..."
+
+# Install the required Python libraries
+pip3 install pandas openpyxl
+
+# Python script to convert HTML to XLSX
+python3 - <<EOF
+import pandas as pd
+
+# Read the HTML report
+html_file = "$HTML_REPORT"
+dfs = pd.read_html(html_file)
+
+# Convert to XLSX
+with pd.ExcelWriter("$XLSX_REPORT") as writer:
+    for i, df in enumerate(dfs):
+        df.to_excel(writer, sheet_name=f'Sheet{i+1}', index=False)
+
+print("Report successfully converted to XLSX format.")
+EOF
+
+# Step 5: Final Output
+if [ -f "$XLSX_REPORT" ]; then
+    echo "Conversion successful! XLSX report saved to $XLSX_REPORT"
+else
+    echo "Error: Conversion to XLSX failed."
+    exit 1
 fi
 
-git clone https://github.com/ComplianceAsCode/content.git scap-security-guide
-
-cd scap-security-guide
-# Checkout a stable version (optional, or stay at latest)
-# git checkout v0.1.76
-
-# Build not required — we directly use the XML
-cd ..
-
-# Copy Amazon Linux 2 SCAP content
-mkdir -p /usr/share/xml/scap/ssg/content/
-cp scap-security-guide/ssg-alinux2-ds.xml /usr/share/xml/scap/ssg/content/
-
-# Run OpenSCAP scan
-echo "[+] Running OpenSCAP Amazon Linux 2 CIS Benchmark..."
-oscap xccdf eval \
-    --profile xccdf_org.ssgproject.content_profile_cis \
-    --results oscap-results.xml \
-    --report oscap-report.html \
-    /usr/share/xml/scap/ssg/content/ssg-alinux2-ds.xml
-
-echo "[+] OpenSCAP audit completed. Report saved to oscap-report.html."
-
-# Install Lynis
-echo "[+] Setting up Lynis..."
-if [ -d "lynis" ]; then
-    echo "[*] Removing old lynis folder..."
-    rm -rf lynis
-fi
-
-git clone https://github.com/CISOfy/lynis.git
-cd lynis
-
-echo "[+] Running Lynis system audit..."
-sudo ./lynis audit system --quiet | tee ../lynis-report.txt
-
-cd ..
-
-echo "===== All audits completed successfully ====="
-echo "Reports generated:"
-echo "  -> OpenSCAP HTML Report : oscap-report.html"
-echo "  -> Lynis Text Report    : lynis-report.txt"
+# Done
+echo "Audit completed. You can find the HTML report at: $HTML_REPORT"
+echo "You can find the XLSX report at: $XLSX_REPORT"
+echo "Script execution finished."
