@@ -36,14 +36,31 @@ check_scap_content() {
     echo "SCAP content file found: $SCAP_CONTENT"
 }
 
+# Function to check system resources
+check_system_resources() {
+    echo "Checking system resources..."
+
+    # Check disk space
+    if ! df -h /tmp | grep -q 'tmpfs\|/dev/sda'; then
+        echo "Insufficient disk space on /tmp. Please free up some space."
+        exit 1
+    fi
+
+    # Check if there's enough memory
+    if ! free -m | grep -q 'Mem'; then
+        echo "Insufficient memory. Please ensure your system has enough RAM."
+        exit 1
+    fi
+
+    echo "System resources are sufficient."
+}
+
 # Function to run SCAP evaluation and generate the report
 run_scap_evaluation() {
     echo "Running SCAP evaluation with profile '$PROFILE'..."
 
     # Run SCAP evaluation with results in XML and HTML format
-    sudo oscap xccdf eval --profile "$PROFILE" --fetch-remote-resources \
-        --results "$RESULTS_XML" --report "$REPORT_HTML" \
-        "$SCAP_CONTENT"
+    sudo oscap xccdf eval --profile "$PROFILE" --fetch-remote-resources --results "$RESULTS_XML" --report "$REPORT_HTML" --verbose "$SCAP_CONTENT"
 
     echo "SCAP evaluation completed. Results saved to:"
     echo "XML results: $RESULTS_XML"
@@ -89,6 +106,9 @@ main() {
 
     # Check if the SCAP content exists
     check_scap_content
+
+    # Check system resources (disk space and memory)
+    check_system_resources
 
     # Ask the user to select the profile
     choose_profile
