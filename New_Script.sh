@@ -39,11 +39,18 @@ else
     echo "pandas is already installed."
 fi
 
-# Step 4: Run the Lynis Audit
+# Step 4: Run the Lynis Audit and save the output in JSON format
 echo "Running Lynis audit..."
-# Run the audit and output results to JSON format
 cd "$HOME/lynis"
 ./lynis audit system --json > "$JSON_REPORT"
+
+# Check if JSON report is generated and not empty
+if [ ! -s "$JSON_REPORT" ]; then
+    echo "Error: Lynis did not produce a valid JSON output."
+    exit 1
+else
+    echo "Lynis audit completed successfully, saving to JSON file: $JSON_REPORT"
+fi
 
 # Step 5: Convert JSON report to CSV format using Python
 echo "Converting JSON report to CSV..."
