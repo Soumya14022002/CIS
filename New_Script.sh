@@ -31,7 +31,7 @@ else
     echo "Lynis is already installed."
 fi
 
-# Step 3: Install required Python libraries (lxml, html5lib, pandas, openpyxl)
+# Step 3: Install required Python libraries (lxml, html5lib, beautifulsoup4, pandas, openpyxl)
 echo "Checking and installing required Python libraries..."
 
 pip3 show lxml &> /dev/null
@@ -48,6 +48,14 @@ if [ $? -ne 0 ]; then
     pip3 install html5lib
 else
     echo "html5lib is already installed."
+fi
+
+pip3 show beautifulsoup4 &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing beautifulsoup4..."
+    pip3 install beautifulsoup4
+else
+    echo "beautifulsoup4 is already installed."
 fi
 
 pip3 show pandas &> /dev/null
