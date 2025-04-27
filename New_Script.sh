@@ -31,14 +31,39 @@ else
     echo "Lynis is already installed."
 fi
 
-# Step 3: Install lxml (if not already installed)
-echo "Checking if lxml is installed..."
+# Step 3: Install required Python libraries (lxml, html5lib, pandas, openpyxl)
+echo "Checking and installing required Python libraries..."
+
 pip3 show lxml &> /dev/null
 if [ $? -ne 0 ]; then
-    echo "Installing lxml library..."
+    echo "Installing lxml..."
     pip3 install lxml
 else
     echo "lxml is already installed."
+fi
+
+pip3 show html5lib &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing html5lib..."
+    pip3 install html5lib
+else
+    echo "html5lib is already installed."
+fi
+
+pip3 show pandas &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing pandas..."
+    pip3 install pandas
+else
+    echo "pandas is already installed."
+fi
+
+pip3 show openpyxl &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing openpyxl..."
+    pip3 install openpyxl
+else
+    echo "openpyxl is already installed."
 fi
 
 # Step 4: Run the Lynis Audit
@@ -58,9 +83,6 @@ fi
 
 # Step 5: Convert HTML Report to XLSX (using Python)
 echo "Converting HTML report to XLSX..."
-
-# Install the required Python libraries
-pip3 install pandas openpyxl
 
 # Python script to convert HTML to XLSX
 python3 - <<EOF
