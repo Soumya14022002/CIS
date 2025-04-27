@@ -2,7 +2,7 @@
 
 # Define report location in the Home directory
 REPORT_DIR="$HOME/lynis_reports"
-JSON_REPORT="$REPORT_DIR/lynis_report.json"
+LOG_REPORT="$REPORT_DIR/lynis_report.log"
 
 # Check if the report directory exists, if not create it
 if [ ! -d "$REPORT_DIR" ]; then
@@ -38,19 +38,19 @@ else
     echo "pandas is already installed."
 fi
 
-# Step 4: Run the Lynis Audit and save the output in JSON format
+# Step 4: Run the Lynis Audit and save the output in a log format
 echo "Running Lynis audit..."
 cd "$HOME/lynis"
-./lynis audit system --json > "$JSON_REPORT"
+./lynis audit system > "$LOG_REPORT"
 
-# Check if JSON report is generated and not empty
-if [ ! -s "$JSON_REPORT" ]; then
-    echo "Error: Lynis did not produce a valid JSON output."
+# Check if log report is generated and not empty
+if [ ! -s "$LOG_REPORT" ]; then
+    echo "Error: Lynis did not produce a valid output."
     exit 1
 else
-    echo "Lynis audit completed successfully, saving to JSON file: $JSON_REPORT"
+    echo "Lynis audit completed successfully, saving to log file: $LOG_REPORT"
 fi
 
 # Step 5: Notify the user
-echo "Audit completed. You can find the JSON report at: $JSON_REPORT"
+echo "Audit completed. You can find the log report at: $LOG_REPORT"
 echo "Script execution finished."
