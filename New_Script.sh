@@ -2,9 +2,8 @@
 
 # Define report location in the Home directory
 REPORT_DIR="$HOME/lynis_reports"
-HTML_REPORT="$REPORT_DIR/lynis_report.html"
-XLSX_REPORT="$REPORT_DIR/lynis_report.xlsx"
-TEXT_REPORT="$REPORT_DIR/report.txt"
+CSV_REPORT="$REPORT_DIR/lynis_report.csv"
+JSON_REPORT="$REPORT_DIR/lynis_report.json"
 
 # Check if the report directory exists, if not create it
 if [ ! -d "$REPORT_DIR" ]; then
@@ -14,10 +13,8 @@ fi
 
 # Step 1: Install Prerequisites
 echo "Installing prerequisites..."
-
 # Update package lists
 sudo yum update -y
-
 # Install necessary dependencies
 sudo yum install -y git curl python3-pip
 
@@ -27,38 +24,13 @@ then
     echo "Lynis not found, installing..."
     git clone https://github.com/CISOfy/lynis.git "$HOME/lynis"
     cd "$HOME/lynis"
-    sudo ./lynis install
+    ./lynis install
 else
     echo "Lynis is already installed."
 fi
 
-# Step 3: Install required Python libraries (lxml, html5lib, beautifulsoup4, pandas, openpyxl)
+# Step 3: Install required Python libraries (for CSV/JSON output)
 echo "Checking and installing required Python libraries..."
-
-pip3 show lxml &> /dev/null
-if [ $? -ne 0 ]; then
-    echo "Installing lxml..."
-    pip3 install lxml
-else
-    echo "lxml is already installed."
-fi
-
-pip3 show html5lib &> /dev/null
-if [ $? -ne 0 ]; then
-    echo "Installing html5lib..."
-    pip3 install html5lib
-else
-    echo "html5lib is already installed."
-fi
-
-pip3 show beautifulsoup4 &> /dev/null
-if [ $? -ne 0 ]; then
-    echo "Installing beautifulsoup4..."
-    pip3 install beautifulsoup4
-else
-    echo "beautifulsoup4 is already installed."
-fi
-
 pip3 show pandas &> /dev/null
 if [ $? -ne 0 ]; then
     echo "Installing pandas..."
@@ -67,85 +39,45 @@ else
     echo "pandas is already installed."
 fi
 
-pip3 show openpyxl &> /dev/null
-if [ $? -ne 0 ]; then
-    echo "Installing openpyxl..."
-    pip3 install openpyxl
-else
-    echo "openpyxl is already installed."
-fi
-
 # Step 4: Run the Lynis Audit
 echo "Running Lynis audit..."
-
-# Run the audit
+# Run the audit and output results to JSON format
 cd "$HOME/lynis"
-sudo ./lynis audit system --report-file "$HTML_REPORT"
+./lynis audit system --json > "$JSON_REPORT"
 
-# Check if the audit was successful
-if [ -f "$HTML_REPORT" ]; then
-    echo "Lynis audit completed successfully. Report saved to $HTML_REPORT"
-else
-    echo "Error: Lynis audit failed."
-    exit 1
-fi
-
-# Step 5: Convert HTML Report to XLSX (using BeautifulSoup and Pandas)
-echo "Converting HTML report to XLSX..."
-
-# Python script to convert HTML to XLSX
+# Step 5: Convert JSON report to CSV format using Python
+echo "Converting JSON report to CSV..."
 python3 - <<EOF
 import pandas as pd
-from bs4 import BeautifulSoup
+import json
 
-# Read the HTML report
-with open("$HTML_REPORT", "r") as file:
-    soup = BeautifulSoup(file, "html.parser")
+# Load the JSON report
+with open("$JSON_REPORT", "r") as json_file:
+    data = json.load(json_file)
 
-# Find all tables in the HTML
-tables = soup.find_all("table")
+# Convert JSON data to pandas DataFrame
+df = pd.json_normalize(data)
 
-# Convert each table into a pandas DataFrame and save as sheets in the XLSX file
-with pd.ExcelWriter("$XLSX_REPORT") as writer:
-    for i, table in enumerate(tables):
-        # Convert each table into a pandas DataFrame
-        df = pd.read_html(str(table))[0]
-        # Write to Excel sheet
-        df.to_excel(writer, sheet_name=f'Sheet{i+1}', index=False)
-
-print("Report successfully converted to XLSX format.")
+# Save the DataFrame to CSV
+df.to_csv("$CSV_REPORT", index=False)
 EOF
 
-# Step 6: Create report.txt with summary
-echo "Creating summary report..."
-
-echo "Lynis Audit Completed" > "$TEXT_REPORT"
-echo "-----------------------" >> "$TEXT_REPORT"
-echo "Audit Command: lynis audit system" >> "$TEXT_REPORT"
-echo "Audit Report (HTML): $HTML_REPORT" >> "$TEXT_REPORT"
-echo "Converted Excel Report (XLSX): $XLSX_REPORT" >> "$TEXT_REPORT"
-echo "" >> "$TEXT_REPORT"
-echo "You can review the HTML report and XLSX conversion above." >> "$TEXT_REPORT"
-echo "" >> "$TEXT_REPORT"
-echo "Audit completed at $(date)" >> "$TEXT_REPORT"
-
-# Step 7: Final Output
-if [ -f "$XLSX_REPORT" ]; then
-    echo "Conversion successful! XLSX report saved to $XLSX_REPORT"
+# Step 6: Check and Notify
+if [ -f "$CSV_REPORT" ]; then
+    echo "CSV report created successfully! Report saved to $CSV_REPORT"
 else
-    echo "Error: Conversion to XLSX failed."
+    echo "Error: Conversion to CSV failed."
     exit 1
 fi
 
-if [ -f "$TEXT_REPORT" ]; then
-    echo "Summary report created successfully! Text report saved to $TEXT_REPORT"
+if [ -f "$JSON_REPORT" ]; then
+    echo "JSON report created successfully! Report saved to $JSON_REPORT"
 else
-    echo "Error: Text report creation failed."
+    echo "Error: JSON report creation failed."
     exit 1
 fi
 
 # Done
-echo "Audit completed. You can find the HTML report at: $HTML_REPORT"
-echo "You can find the XLSX report at: $XLSX_REPORT"
-echo "You can find the summary report at: $TEXT_REPORT"
+echo "Audit completed. You can find the CSV report at: $CSV_REPORT"
+echo "You can find the JSON report at: $JSON_REPORT"
 echo "Script execution finished."
