@@ -89,20 +89,27 @@ else
     exit 1
 fi
 
-# Step 5: Convert HTML Report to XLSX (using Python)
+# Step 5: Convert HTML Report to XLSX (using BeautifulSoup and Pandas)
 echo "Converting HTML report to XLSX..."
 
 # Python script to convert HTML to XLSX
 python3 - <<EOF
 import pandas as pd
+from bs4 import BeautifulSoup
 
 # Read the HTML report
-html_file = "$HTML_REPORT"
-dfs = pd.read_html(html_file)
+with open("$HTML_REPORT", "r") as file:
+    soup = BeautifulSoup(file, "html.parser")
 
-# Convert to XLSX
+# Find all tables in the HTML
+tables = soup.find_all("table")
+
+# Convert each table into a pandas DataFrame and save as sheets in the XLSX file
 with pd.ExcelWriter("$XLSX_REPORT") as writer:
-    for i, df in enumerate(dfs):
+    for i, table in enumerate(tables):
+        # Convert each table into a pandas DataFrame
+        df = pd.read_html(str(table))[0]
+        # Write to Excel sheet
         df.to_excel(writer, sheet_name=f'Sheet{i+1}', index=False)
 
 print("Report successfully converted to XLSX format.")
@@ -120,3 +127,4 @@ fi
 echo "Audit completed. You can find the HTML report at: $HTML_REPORT"
 echo "You can find the XLSX report at: $XLSX_REPORT"
 echo "Script execution finished."
+EOF
