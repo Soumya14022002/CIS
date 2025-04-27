@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Define report location
+# Define report location in the Home directory
 REPORT_DIR="$HOME/lynis_reports"
 HTML_REPORT="$REPORT_DIR/lynis_report.html"
 XLSX_REPORT="$REPORT_DIR/lynis_report.xlsx"
+TEXT_REPORT="$REPORT_DIR/report.txt"
 
 # Check if the report directory exists, if not create it
 if [ ! -d "$REPORT_DIR" ]; then
@@ -115,7 +116,20 @@ with pd.ExcelWriter("$XLSX_REPORT") as writer:
 print("Report successfully converted to XLSX format.")
 EOF
 
-# Step 6: Final Output
+# Step 6: Create report.txt with summary
+echo "Creating summary report..."
+
+echo "Lynis Audit Completed" > "$TEXT_REPORT"
+echo "-----------------------" >> "$TEXT_REPORT"
+echo "Audit Command: lynis audit system" >> "$TEXT_REPORT"
+echo "Audit Report (HTML): $HTML_REPORT" >> "$TEXT_REPORT"
+echo "Converted Excel Report (XLSX): $XLSX_REPORT" >> "$TEXT_REPORT"
+echo "" >> "$TEXT_REPORT"
+echo "You can review the HTML report and XLSX conversion above." >> "$TEXT_REPORT"
+echo "" >> "$TEXT_REPORT"
+echo "Audit completed at $(date)" >> "$TEXT_REPORT"
+
+# Step 7: Final Output
 if [ -f "$XLSX_REPORT" ]; then
     echo "Conversion successful! XLSX report saved to $XLSX_REPORT"
 else
@@ -123,8 +137,15 @@ else
     exit 1
 fi
 
+if [ -f "$TEXT_REPORT" ]; then
+    echo "Summary report created successfully! Text report saved to $TEXT_REPORT"
+else
+    echo "Error: Text report creation failed."
+    exit 1
+fi
+
 # Done
 echo "Audit completed. You can find the HTML report at: $HTML_REPORT"
 echo "You can find the XLSX report at: $XLSX_REPORT"
+echo "You can find the summary report at: $TEXT_REPORT"
 echo "Script execution finished."
-EOF
