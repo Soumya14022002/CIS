@@ -31,7 +31,17 @@ else
     echo "Lynis is already installed."
 fi
 
-# Step 3: Run the Lynis Audit
+# Step 3: Install lxml (if not already installed)
+echo "Checking if lxml is installed..."
+pip3 show lxml &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing lxml library..."
+    pip3 install lxml
+else
+    echo "lxml is already installed."
+fi
+
+# Step 4: Run the Lynis Audit
 echo "Running Lynis audit..."
 
 # Run the audit
@@ -46,7 +56,7 @@ else
     exit 1
 fi
 
-# Step 4: Convert HTML Report to XLSX (using Python)
+# Step 5: Convert HTML Report to XLSX (using Python)
 echo "Converting HTML report to XLSX..."
 
 # Install the required Python libraries
@@ -68,7 +78,7 @@ with pd.ExcelWriter("$XLSX_REPORT") as writer:
 print("Report successfully converted to XLSX format.")
 EOF
 
-# Step 5: Final Output
+# Step 6: Final Output
 if [ -f "$XLSX_REPORT" ]; then
     echo "Conversion successful! XLSX report saved to $XLSX_REPORT"
 else
