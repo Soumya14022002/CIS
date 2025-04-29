@@ -1,50 +1,56 @@
 #!/bin/bash
 
-# Fully automatic script to clone, chmod, run AL2Script.sh, and move results to /var/log/al2-audits
+# Define report location in the Home directory
+REPORT_DIR="$HOME/lynis_reports"
+LOG_REPORT="$REPORT_DIR/lynis_report.log"
 
-# Variables
-REPO_URL="https://github.com/Soumya14022002/AL2.git"
-REPO_NAME="AL2"
-SCRIPT_NAME="AL2Script.sh"
-LOG_DIR="/var/log/al2-audits"
-TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-LOG_FILE="$LOG_DIR/full_audit_log_$TIMESTAMP.log"
-
-# 1. Create the log directory if it doesn't exist
-echo "[*] Creating log directory at $LOG_DIR..."
-sudo mkdir -p "$LOG_DIR"
-sudo chown "$USER":"$USER" "$LOG_DIR"
-
-# 2. Clone the repository
-echo "[*] Cloning repository..."
-git clone "$REPO_URL"
-
-# 3. Check if cloning was successful
-if [ $? -ne 0 ]; then
-    echo "[!] Failed to clone repository. Exiting."
-    exit 1
+# Check if the report directory exists, if not create it
+if [ ! -d "$REPORT_DIR" ]; then
+    echo "Creating report directory: $REPORT_DIR"
+    mkdir -p "$REPORT_DIR"
 fi
 
-# 4. Navigate into the cloned repository
-cd "$REPO_NAME" || { echo "[!] Failed to cd into $REPO_NAME. Exiting."; exit 1; }
+# Step 1: Install Prerequisites
+echo "Installing prerequisites..."
+# Update package lists
+sudo yum update -y
+# Install necessary dependencies
+sudo yum install -y git curl python3-pip
 
-# 5. Make the script executable
-echo "[*] Making $SCRIPT_NAME executable..."
-chmod +x "$SCRIPT_NAME"
+# Step 2: Install Lynis (if not already installed)
+if ! command -v lynis &> /dev/null
+then
+    echo "Lynis not found, installing..."
+    git clone https://github.com/CISOfy/lynis.git "$HOME/lynis"
+    cd "$HOME/lynis"
+    ./lynis install
+else
+    echo "Lynis is already installed."
+fi
 
-# 6. Run the script and save full terminal output
-echo "[*] Running $SCRIPT_NAME..."
-sudo ./"$SCRIPT_NAME" | tee "$LOG_FILE"
+# Step 3: Install required Python libraries (for JSON output)
+echo "Checking and installing required Python libraries..."
+pip3 show pandas &> /dev/null
+if [ $? -ne 0 ]; then
+    echo "Installing pandas..."
+    pip3 install pandas
+else
+    echo "pandas is already installed."
+fi
 
-# 7. Move all .csv and .txt results to the log directory
-echo "[*] Moving result files (.csv, .txt) to $LOG_DIR..."
-for file in *.csv *.txt; do
-    if [ -e "$file" ]; then
-        mv "$file" "$LOG_DIR/"
-    fi
-done
+# Step 4: Run the Lynis Audit and save the output in a log format
+echo "Running Lynis audit..."
+cd "$HOME/lynis"
+./lynis audit system > "$LOG_REPORT"
 
-# 8. Final message
-echo "[✔] Audit complete."
-echo "[✔] Terminal log saved at: $LOG_FILE"
-echo "[✔] CSV and TXT results saved at: $LOG_DIR/"
+# Check if log report is generated and not empty
+if [ ! -s "$LOG_REPORT" ]; then
+    echo "Error: Lynis did not produce a valid output."
+    exit 1
+else
+    echo "Lynis audit completed successfully, saving to log file: $LOG_REPORT"
+fi
+
+# Step 5: Notify the user
+echo "Audit completed. You can find the log report at: $LOG_REPORT"
+echo "Script execution finished."
